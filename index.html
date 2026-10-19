@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Розклад 4.03</title>
+<script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-secondary-bg-color, #f1f2f6);
+  --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #ffffff));
+  --text: var(--tg-theme-text-color, #16181d);
+  --hint: var(--tg-theme-hint-color, #8a8f98);
+  --link: var(--tg-theme-link-color, #2f7de1);
+  --accent: var(--tg-theme-button-color, #2f7de1);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --sep: var(--tg-theme-section-separator-color, rgba(127,127,127,.18));
+  --danger: var(--tg-theme-destructive-text-color, #e5484d);
+  --header: var(--tg-theme-section-header-text-color, var(--accent));
+  --lk: #7c5cff; --pr: #1fa971; --lb: #f08c00;
+  --radius: 14px;
+  --safe-b: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.tg) { --bg:#0f1115; --card:#1a1d23; --text:#eceef2; --hint:#8b919c; --sep:rgba(255,255,255,.08); }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+body { padding-bottom: calc(76px + var(--safe-b)); min-height: 100vh; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+a { color: var(--link); text-decoration: none; }
+.hidden { display: none !important; }
+
+/* header */
+.top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 16px 8px; }
+.who { display: flex; align-items: center; gap: 10px; }
+.ava { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: var(--accent-text);
+  display: grid; place-items: center; font-weight: 700; flex: none; }
+.who .name { font-weight: 650; line-height: 1.2; }
+.who .sub { color: var(--hint); font-size: 13px; }
+.who .sp { flex: 1; }
+.icon-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--card); display: grid; place-items: center; font-size: 16px; }
+
+/* week + day chips */
+.weeknav { display: flex; align-items: center; justify-content: space-between; margin: 12px 0 8px; }
+.weeknav .title { font-weight: 650; }
+.weeknav .title small { color: var(--hint); font-weight: 400; margin-left: 6px; }
+.weeknav button { width: 34px; height: 30px; border-radius: 9px; background: var(--card); font-size: 18px; line-height: 1; }
+.days { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.day { background: var(--card); border-radius: 12px; padding: 6px 0 7px; text-align: center; position: relative; }
+.day .dn { font-size: 12px; color: var(--hint); }
+.day .dd { font-weight: 650; font-size: 16px; }
+.day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 2px auto 0; }
+.day.empty { opacity: .45; }
+.day.empty .dot { background: transparent; }
+.day.today .dd { color: var(--accent); }
+.day.sel { background: var(--accent); color: var(--accent-text); }
+.day.sel .dn, .day.sel .dd { color: var(--accent-text); }
+.day.sel .dot { background: var(--accent-text); }
+
+main { padding: 4px 16px 16px; }
+.section-title { color: var(--header); font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  font-weight: 600; margin: 18px 4px 8px; }
+.banner { background: color-mix(in srgb, var(--accent) 14%, var(--card)); border-radius: var(--radius);
+  padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+
+/* lesson cards */
+.lesson { display: flex; gap: 12px; background: var(--card); border-radius: var(--radius); padding: 12px;
+  margin: 8px 0; text-align: left; width: 100%; position: relative; overflow: hidden; }
+.lesson::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--k, var(--accent)); }
+.lesson .time { flex: none; width: 52px; text-align: right; }
+.lesson .time b { display: block; font-size: 15px; }
+.lesson .time span { color: var(--hint); font-size: 12px; }
+.lesson .body { flex: 1; min-width: 0; }
+.lesson .t { font-weight: 620; line-height: 1.25; }
+.lesson .m { color: var(--hint); font-size: 13px; margin-top: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--k, var(--accent)) 14%, transparent);
+  color: var(--k, var(--accent)); font-weight: 600; }
+.chip.btn { background: var(--accent); color: var(--accent-text); }
+.chip.hw { --k: var(--lb); }
+.k-Лк { --k: var(--lk); } .k-Пр { --k: var(--pr); } .k-Лб { --k: var(--lb); }
+.now { box-shadow: inset 0 0 0 2px var(--accent); }
+.empty-state { text-align: center; color: var(--hint); padding: 48px 12px; }
+.empty-state .big { font-size: 42px; margin-bottom: 6px; }
+
+/* list cards */
+.card { background: var(--card); border-radius: var(--radius); padding: 4px 0; margin: 8px 0; }
+.row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; width: 100%; text-align: left; }
+.row + .row { border-top: 1px solid var(--sep); }
+.row .grow { flex: 1; min-width: 0; }
+.row .hint { color: var(--hint); font-size: 13px; }
+.row .val { font-weight: 700; font-size: 17px; }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--hint); }
+.avg { font-weight: 700; color: var(--accent); }
+.btn-link { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 10px;
+  background: var(--accent); color: var(--accent-text); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.btn-ghost { background: var(--bg); color: var(--link); }
+
+/* tab bar */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; background: var(--card);
+  border-top: 1px solid var(--sep); padding: 6px 4px calc(6px + var(--safe-b)); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 11px; color: var(--hint); padding: 4px 0; }
+.tab .i { font-size: 20px; line-height: 1.1; filter: grayscale(1); opacity: .7; }
+.tab.on { color: var(--accent); font-weight: 600; }
+.tab.on .i { filter: none; opacity: 1; }
+
+/* bottom sheet modal */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; opacity: 0; transition: opacity .2s; }
+.overlay.open { opacity: 1; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--bg);
+  border-radius: 18px 18px 0 0; max-height: 88vh; overflow-y: auto; transform: translateY(100%);
+  transition: transform .26s cubic-bezier(.2,.8,.2,1); padding: 0 16px calc(20px + var(--safe-b)); overscroll-behavior: contain; }
+.sheet.open { transform: none; }
+.grab { position: sticky; top: 0; background: var(--bg); padding: 8px 0 4px; z-index: 1; }
+.grab::before { content: ""; display: block; width: 38px; height: 5px; border-radius: 3px; background: var(--sep); margin: 0 auto; }
+.sheet h2 { font-size: 19px; margin: 8px 0 4px; line-height: 1.25; }
+.sheet .meta { color: var(--hint); font-size: 14px; }
+textarea, input { width: 100%; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--sep);
+  border-radius: 12px; padding: 10px 12px; outline: none; }
+textarea:focus, input:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 70px; }
+.form { display: grid; gap: 8px; margin-top: 8px; }
+.form .two { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+.primary { background: var(--accent); color: var(--accent-text); border-radius: 12px; padding: 11px; font-weight: 650; width: 100%; }
+.primary:disabled { opacity: .5; }
+.del { color: var(--danger); font-size: 13px; padding: 4px 6px; }
+.hw-item { padding: 10px 14px; }
+.hw-item + .hw-item { border-top: 1px solid var(--sep); }
+.hw-item .txt { white-space: pre-wrap; word-break: break-word; }
+.hw-item .by { color: var(--hint); font-size: 12px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; }
+
+/* registration */
+.search { margin: 10px 0; }
+.toast { position: fixed; left: 50%; bottom: calc(88px + var(--safe-b)); transform: translateX(-50%); z-index: 40;
+  background: rgba(20,20,20,.88); color: #fff; padding: 9px 14px; border-radius: 12px; font-size: 14px; max-width: 90vw;
+  opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.skeleton { height: 74px; border-radius: var(--radius); margin: 8px 0;
+  background: linear-gradient(90deg, var(--card) 25%, color-mix(in srgb, var(--card) 70%, var(--bg)) 50%, var(--card) 75%);
+  background-size: 200% 100%; animation: sk 1.2s infinite; }
+@keyframes sk { to { background-position: -200% 0; } }
+.netbar { background: color-mix(in srgb, var(--hint) 14%, var(--card)); border-radius: 12px; padding: 8px 12px; margin-top: 10px;
+  display: flex; gap: 8px; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text); }
+.netbar button { color: var(--link); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pick { display: flex; align-items: center; gap: 10px; }
+.pick .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--sep); flex: none; display: grid; place-items: center; font-size: 14px; }
+.pick.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.seg { display: flex; gap: 6px; margin-top: 6px; }
+.seg button { padding: 4px 10px; border-radius: 999px; background: var(--bg); font-size: 13px; }
+.seg button.on { background: var(--accent); color: var(--accent-text); }
+.viewas { background: color-mix(in srgb, var(--lb) 18%, var(--card)); border-radius: 12px; padding: 8px 12px; margin-top: 10px;
+  display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="top" id="top">
+  <div class="who">
+    <div class="ava" id="ava">?</div>
+    <div><div class="name" id="who-name">Завантаження…</div><div class="sub" id="who-sub"></div></div>
+    <div class="sp"></div>
+    <button class="icon-btn" id="btn-full" title="На весь екран">⤢</button>
+  </div>
+  <div id="netbar" class="netbar hidden"><span id="netbar-text"></span><button id="netbar-retry">Повторити</button></div>
+  <div id="viewas" class="viewas hidden"><span id="viewas-text"></span><button class="del" id="viewas-exit">✕ вийти</button></div>
+  <div id="weekbar">
+    <div class="weeknav">
+      <button id="wk-prev" aria-label="Попередній тиждень">‹</button>
+      <div class="title" id="wk-title"></div>
+      <button id="wk-next" aria-label="Наступний тиждень">›</button>
+    </div>
+    <div class="days" id="days"></div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<nav class="tabs" id="tabs">
+  <button class="tab on" data-tab="schedule"><span class="i">📅</span>Розклад</button>
+  <button class="tab" data-tab="homework"><span class="i">📝</span>Домашка</button>
+  <button class="tab" data-tab="grades"><span class="i">⭐</span>Оцінки</button>
+  <button class="tab" data-tab="links"><span class="i">🔗</span>Посилання</button>
+  <button class="tab hidden" data-tab="admin" id="tab-admin"><span class="i">👑</span>Адмін</button>
+</nav>
+
+<div class="overlay hidden" id="overlay"></div>
+<div class="sheet hidden" id="sheet"><div class="grab"></div><div id="sheet-body"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KIND = {"Лк": "Лекція", "Пр": "Практика", "Лб": "Лабораторна"};
+const MONTHS = ["січ","лют","бер","кві","тра","чер","лип","сер","вер","жов","лис","гру"];
+const DAYS_FULL = ["Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота","Неділя"];
+
+const DAYS_SHORT = ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+
+/* Where the live data (homework, grades, Zoom links) comes from:
+   - page served by the bot itself  -> same origin
+   - page on GitHub Pages           -> ?api=https://<bot address>, only from an allowlist, because
+                                       Telegram's signed initData is sent there */
+const PARAMS = new URLSearchParams(location.search);
+const API_HOSTS = [/\.ts\.net$/, /\.trycloudflare\.com$/, /\.duckdns\.org$/];
+const API = (() => {
+  const a = PARAMS.get("api");
+  if (a) {
+    try {
+      const u = new URL(a);
+      const local = u.protocol === "http:" && ["localhost", "127.0.0.1"].includes(u.hostname);
+      if (local || (u.protocol === "https:" && API_HOSTS.some(r => r.test(u.hostname)))) return u.origin;
+    } catch {}
+    return null;
+  }
+  return location.hostname.endsWith("github.io") ? null : "";
+})();
+
+const S = { me: null, tab: "schedule", monday: null, selected: null, week: null, viewAs: null, sheetOnClose: null,
+            online: false, pub: null, netError: "" };
+
+/* ---------- utils ---------- */
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const fmt = s => { const d = parse(s); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const dayName = s => DAYS_FULL[(parse(s).getDay()+6)%7];
+const haptic = (t="light") => { try { tg?.HapticFeedback?.impactOccurred(t); } catch {} };
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200); }
+function openLink(url) { if (!url) return; if (url.startsWith("https://t.me/") && tg?.openTelegramLink) tg.openTelegramLink(url); else if (tg?.openLink) tg.openLink(url); else window.open(url, "_blank"); }
+
+async function api(path, body) {
+  if (API === null) throw Object.assign(new Error("Сервер бота не налаштований"), { network: true });
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 9000);
+  const opt = { method: body ? "POST" : "GET", headers: { "X-Init-Data": tg?.initData || "" }, signal: ctl.signal };
+  if (body) { opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  let r;
+  try { r = await fetch(API + path, opt); }
+  catch { throw Object.assign(new Error("Сервер бота недоступний з цієї мережі"), { network: true }); }
+  finally { clearTimeout(timer); }
+  // a non-JSON answer (dead tunnel / proxy error page) means the bot is unreachable, not a real error
+  const j = await r.json().catch(() => null);
+  if (!j) throw Object.assign(new Error("Сервер бота недоступний з цієї мережі"), { network: true });
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+/* ---------- storage: Telegram CloudStorage (follows the account), localStorage fallback ---------- */
+const hasCloud = () => tg?.CloudStorage && tg.isVersionAtLeast?.("6.9");
+function cloudGet(key) {
+  return new Promise(res => {
+    let local = null; try { local = localStorage.getItem(key); } catch {}
+    if (!hasCloud()) return res(local);
+    tg.CloudStorage.getItem(key, (err, v) => res(err ? local : (v || local)));
+  });
+}
+function cloudSet(key, value) {
+  try { localStorage.setItem(key, value); } catch {}
+  return new Promise(res => hasCloud() ? tg.CloudStorage.setItem(key, value, () => res()) : res());
+}
+
+/* ---------- offline engine: same results as schedule.py, from the public schedule.json ---------- */
+const kyivToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" }).format(new Date());
+const utcDays = s => { const [y,m,d] = s.split("-").map(Number); return Date.UTC(y, m-1, d) / 864e5; };
+const weekNo = s => Math.floor((utcDays(s) - utcDays(S.pub.week1_monday)) / 7) + 1;
+const mondayOf = s => addDays(s, -((parse(s).getDay() + 6) % 7));
+function localLessons(date, el) {
+  const P = S.pub, wk = weekNo(date), wd = (parse(date).getDay() + 6) % 7, out = [];
+  if (wk < 1 || wk > P.weeks) return out;
+  for (const [day, pair, course, sub, weeks, kind, teachers] of P.mandatory.concat(P.elective_rows)) {
+    if (day !== wd || !weeks.includes(wk)) continue;
+    const c = P.courses[course];
+    if (!c.mandatory && (!(course in el) || (sub !== "4.1" && sub !== el[course]))) continue;
+    const many = (P.electives[course] || []).length > 1;
+    out.push({ key: `${date}|${pair}|${course}`, date, pair, start: P.bells[pair][0], end: P.bells[pair][1],
+      course, title: c.name, short: c.short, kind, teachers, mandatory: c.mandatory,
+      subgroup: many && sub !== "*" && sub !== "4.1" ? sub : null, links: [], chat: null, hw: 0 });
+  }
+  return out.sort((a, b) => a.pair - b.pair || (a.course < b.course ? -1 : a.course > b.course ? 1 : 0));
+}
+function localWeek(date) {
+  const monday = mondayOf(date), el = S.me.electives || {}, wk = weekNo(monday);
+  return { monday, week: wk, in_semester: wk >= 1 && wk <= S.pub.weeks, offline: true,
+    days: [0,1,2,3,4,5].map(i => { const d = addDays(monday, i);
+      return { date: d, weekday: i, name: DAYS_FULL[i], short: DAYS_SHORT[i],
+               class_hour: S.pub.class_hours.includes(d), lessons: localLessons(d, el) }; }) };
+}
+function offlineMe(electives) {
+  const u = tg?.initDataUnsafe?.user, today = kyivToday();
+  return { offline: true, student: null, admin: false, group: S.pub.group, today, week: weekNo(today),
+           electives: electives || null, name: u ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "" };
+}
+function setNetbar() {
+  const show = !S.online && !!S.me?.offline;
+  $("#netbar").classList.toggle("hidden", !show);
+  if (show) $("#netbar-text").textContent = API === null
+    ? "📡 Розклад працює без сервера. ДЗ, оцінки й Zoom — у кнопках бота."
+    : "📡 Сервер бота недоступний з цієї мережі. Розклад працює; ДЗ, оцінки й Zoom — у кнопках бота.";
+  $("#netbar-retry").classList.toggle("hidden", API === null);
+}
+function offlineNotice(what) {
+  return `<div class="empty-state"><div class="big">📡</div>${what} зараз недоступні: сервер бота не відповідає з цієї мережі.<br>
+    Скористайся кнопками бота в чаті${API === null ? "" : " або натисни «Повторити» вгорі"}.</div>`;
+}
+
+/* ---------- electives picker (offline mode) ---------- */
+function renderElectivePicker(first) {
+  const P = S.pub, sel = { ...(S.me.electives || {}) };
+  S.tab = "picker";
+  $("#weekbar").classList.add("hidden"); $("#tabs").classList.toggle("hidden", !!first);
+  if (first) $("#who-name").textContent = "Вибіркові";
+  const draw = () => {
+    $("#main").innerHTML = `<div class="section-title">${first ? "Обери свої вибіркові" : "Мої вибіркові"}</div>
+      <div class="card">${Object.entries(P.electives).map(([code, subs]) => {
+        const on = code in sel;
+        return `<div class="row pick ${on ? "on" : ""}" data-el="${esc(code)}" role="button"><span class="box">${on ? "✓" : ""}</span>
+          <div class="grow"><div>${esc(P.courses[code].name)}</div><div class="hint">${esc(code)}</div>
+          ${on && subs.length > 1 ? `<div class="seg">${subs.map(g => `<button class="${sel[code] === g ? "on" : ""}" data-el="${esc(code)}" data-sub="${esc(g)}">підгр. ${esc(g)}</button>`).join("")}</div>` : ""}
+          </div></div>`; }).join("")}</div>
+      <div class="form"><button class="primary" id="el-save" ${Object.keys(sel).length ? "" : "disabled"}>Зберегти</button></div>
+      <div class="hint" style="text-align:center;margin-top:8px">Зберігається у твоєму акаунті Telegram</div>`;
+    $("#main").querySelectorAll("[data-el]").forEach(b => b.addEventListener("click", e => {
+      e.stopPropagation(); haptic("soft");
+      const code = b.dataset.el;
+      if (b.dataset.sub) sel[code] = b.dataset.sub;
+      else if (code in sel) delete sel[code];
+      else sel[code] = P.electives[code][0];
+      draw();
+    }));
+    $("#el-save").addEventListener("click", async () => {
+      S.me.electives = sel; await cloudSet("electives", JSON.stringify(sel));
+      toast("Збережено 🎓"); $("#tabs").classList.remove("hidden"); S.selected = null; renderHeader(); switchTab("schedule");
+    });
+  };
+  draw();
+}
+
+const q = (path, params) => path + "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null)).toString();
+const asParam = () => (S.viewAs ? { student: S.viewAs } : {});
+
+/* ---------- header ---------- */
+function renderHeader() {
+  const me = S.me, st = S.viewAs || me.student;
+  const parts = (st || "").split(" ");
+  if (me.offline) {
+    const n = (me.name || "").split(" ");
+    $("#ava").textContent = me.name ? (n[0]?.[0] || "") + (n[1]?.[0] || "") : "📅";
+    $("#who-name").textContent = me.name || "Розклад";
+  } else {
+    $("#ava").textContent = st ? (parts[1]?.[0] || "") + (parts[0]?.[0] || "") : "?";
+    $("#who-name").textContent = st ? `${parts[1]} ${parts[0]}` : "Розклад";
+  }
+  setNetbar();
+  $("#who-sub").textContent = `ІПЗ-${me.group} · тиждень ${me.week}`;
+  $("#tab-admin").classList.toggle("hidden", !me.admin);
+  $("#viewas").classList.toggle("hidden", !S.viewAs);
+  $("#viewas-text").textContent = S.viewAs ? `👁 Перегляд: ${S.viewAs}` : "";
+}
+
+/* ---------- schedule ---------- */
+async function loadWeek(dateIso, keepSel) {
+  $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+  let w;
+  if (S.online) {
+    try { w = await api(q("/api/week", { date: dateIso, ...asParam() })); }
+    catch (e) { if (!e.network || S.viewAs || !S.pub) throw e; goOffline(e.message); }
+  }
+  if (!w) w = localWeek(dateIso || S.me.today);
+  S.week = w; S.monday = w.monday;
+  const busy = d => d && (d.lessons.length || d.class_hour);
+  const find = x => w.days.find(d => d.date === x);
+  if (!(keepSel && find(S.selected))) {
+    const t = find(S.me.today), req = find(dateIso);
+    S.selected = (busy(t) && t || busy(req) && req || w.days.find(busy) || t || w.days[0]).date;
+  }
+  renderWeekbar(); renderDay();
+}
+
+function renderWeekbar() {
+  const w = S.week, today = S.me.today;
+  $("#wk-title").innerHTML = (w.in_semester ? `Тиждень ${w.week}` : "Поза семестром") +
+    `<small>${fmt(w.days[0].date)} – ${fmt(w.days[5].date)}</small>`;
+  $("#days").innerHTML = w.days.map(d => {
+    const busy = d.lessons.length || d.class_hour;
+    const cls = ["day", busy ? "" : "empty", d.date === today ? "today" : "", d.date === S.selected ? "sel" : ""].join(" ");
+    return `<button class="${cls}" data-date="${d.date}" ${busy ? "" : "disabled"}>
+      <div class="dn">${d.short}</div><div class="dd">${parse(d.date).getDate()}</div><div class="dot"></div></button>`;
+  }).join("");
+}
+
+function nowPair(lesson) {
+  if (lesson.date !== S.me.today) return false;
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes();
+  const t = s => { const [h, mm] = s.split(":").map(Number); return h*60+mm; };
+  return m >= t(lesson.start) && m <= t(lesson.end);
+}
+
+function lessonCard(l) {
+  const sub = l.subgroup ? ` · підгр. ${esc(l.subgroup)}` : "";
+  const chips = [`<span class="chip">${KIND[l.kind] || esc(l.kind)}</span>`];
+  if (l.hw) chips.push(`<span class="chip hw">📝 ДЗ ${l.hw}</span>`);
+  if (l.links[0]) chips.push(`<span class="chip btn" data-open="${esc(l.links[0].url)}">▶ ${l.links[0].url.includes("zoom") ? "Zoom" : "Meet"}</span>`);
+  return `<button class="lesson k-${esc(l.kind)} ${nowPair(l) ? "now" : ""}" data-key="${esc(l.key)}">
+    <div class="time"><b>${esc(l.start)}</b><span>${esc(l.end)}</span><br><span>${l.pair} пара</span></div>
+    <div class="body"><div class="t">${esc(l.title)}</div>
+      <div class="m">${esc(l.teachers)}${sub}</div>
+      <div class="chips">${chips.join("")}</div></div></button>`;
+}
+
+function renderDay() {
+  const d = S.week.days.find(x => x.date === S.selected);
+  let html = `<div class="section-title">${dayName(d.date)}, ${fmt(d.date)}${d.date === S.me.today ? " · сьогодні" : ""}</div>`;
+  if (d.class_hour) html += `<div class="banner">👥 <b>Класна година о 14:00</b></div>`;
+  if (!d.lessons.length) html += `<div class="empty-state"><div class="big">🎉</div>Пар немає</div>`;
+  html += d.lessons.map(lessonCard).join("");
+  $("#main").innerHTML = html;
+}
+
+/* ---------- lesson sheet ---------- */
+async function openLesson(key) {
+  haptic();
+  if (!S.online) return renderOfflineLesson(key);
+  openSheet('<div class="skeleton"></div><div class="skeleton"></div>');
+  try { renderLessonSheet(await api(q("/api/lesson", { key, ...asParam() }))); }
+  catch (e) { $("#sheet-body").innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
+}
+
+function renderOfflineLesson(key) {
+  const l = S.week?.days.flatMap(d => d.lessons).find(x => x.key === key);
+  if (!l) return;
+  openSheet(`<h2>${esc(l.title)}</h2>
+    <div class="meta">${dayName(l.date)}, ${fmt(l.date)} · ${esc(l.start)}–${esc(l.end)} · ${KIND[l.kind] || esc(l.kind)}${l.subgroup ? " · підгр. " + esc(l.subgroup) : ""}</div>
+    <div class="section-title">Викладач</div><div class="card"><div class="row">${esc(l.teachers)}</div></div>
+    ${offlineNotice("ДЗ, оцінки й Zoom")}`);
+}
+
+function renderLessonSheet(r) {
+  const l = r.lesson;
+  const links = l.links.map(x => `<div class="row"><div class="grow">${esc(x.teacher)}</div>
+      <button class="btn-link" data-open="${esc(x.url)}">▶ ${x.url.includes("zoom") ? "Zoom" : "Meet"}</button></div>`).join("");
+  const chat = l.chat ? `<div class="row"><div class="grow">Чат предмета</div><button class="btn-link btn-ghost" data-open="${esc(l.chat)}">💬 Відкрити</button></div>` : "";
+  const hws = r.homework.map(h => `<div class="hw-item"><div class="txt">${esc(h.text)}</div>
+      <div class="by"><span>${esc(h.author || "")} · ${esc((h.created || "").slice(0,16).replace("T"," "))}</span>
+      ${h.can_delete ? `<button class="del" data-del-hw="${h.id}">Видалити</button>` : ""}</div></div>`).join("");
+  const grades = r.grades.map(g => `<div class="row"><div class="val">${esc(g.value)}</div>
+      <div class="grow hint">${esc(g.comment || "")}</div><button class="del" data-del-gr="${g.id}">✕</button></div>`).join("");
+  const canAddHw = r.attends || S.me.admin;
+  $("#sheet-body").innerHTML = `
+    <h2>${esc(l.title)}</h2>
+    <div class="meta">${dayName(l.date)}, ${fmt(l.date)} · ${esc(l.start)}–${esc(l.end)} · ${KIND[l.kind] || esc(l.kind)}${l.subgroup ? " · підгр. " + esc(l.subgroup) : ""}</div>
+    ${links || chat ? `<div class="section-title">Підключення</div><div class="card">${links}${chat}</div>` : ""}
+    <div class="section-title">📝 Домашнє завдання</div>
+    <div class="card">${hws || '<div class="row hint">Ще не додано</div>'}</div>
+    ${canAddHw ? `<div class="form"><textarea id="hw-text" placeholder="Що задали? (бачать усі, у кого ця пара)" maxlength="2000"></textarea>
+      <button class="primary" id="hw-add">Додати ДЗ</button></div>` : ""}
+    ${r.can_grade ? `<div class="section-title">⭐ Мої оцінки <span class="pill">бачиш ти й адмін</span></div>
+    <div class="card">${grades || '<div class="row hint">Оцінок за цю пару немає</div>'}</div>
+    <div class="form"><div class="two"><input id="gr-val" placeholder="5 / 95" maxlength="20" inputmode="text">
+      <input id="gr-com" placeholder="коментар (необов'язково)" maxlength="300"></div>
+      <button class="primary" id="gr-add">Зберегти оцінку</button></div>`
+    : grades ? `<div class="section-title">⭐ Оцінки студента</div><div class="card">${grades}</div>` : ""}`;
+  const key = l.key;
+  $("#hw-add")?.addEventListener("click", async e => {
+    const text = $("#hw-text").value.trim(); if (!text) return;
+    e.target.disabled = true;
+    try { renderLessonSheet(await api("/api/homework", { key, text })); toast("ДЗ додано ✅"); tg?.HapticFeedback?.notificationOccurred("success"); S.dirty = true; }
+    catch (err) { toast(err.message); e.target.disabled = false; }
+  });
+  $("#gr-add")?.addEventListener("click", async e => {
+    const value = $("#gr-val").value.trim(); if (!value) return;
+    e.target.disabled = true;
+    try { renderLessonSheet(await api("/api/grade", { key, value, comment: $("#gr-com").value })); toast("Оцінку збережено ⭐"); tg?.HapticFeedback?.notificationOccurred("success"); }
+    catch (err) { toast(err.message); e.target.disabled = false; }
+  });
+  $("#sheet-body").querySelectorAll("[data-del-hw]").forEach(b => b.addEventListener("click", () =>
+    confirmDo("Видалити це ДЗ?", async () => { await api("/api/homework/delete", { id: +b.dataset.delHw }); S.dirty = true; openLesson(key); })));
+  $("#sheet-body").querySelectorAll("[data-del-gr]").forEach(b => b.addEventListener("click", () =>
+    confirmDo("Видалити оцінку?", async () => { await api("/api/grade/delete", { id: +b.dataset.delGr }); openLesson(key); })));
+}
+
+function confirmDo(text, fn) {
+  const run = ok => ok && fn().catch(e => toast(e.message));
+  if (tg?.showConfirm && tg.isVersionAtLeast?.("6.2")) tg.showConfirm(text, run); else run(confirm(text));
+}
+
+/* ---------- sheet mechanics ---------- */
+function openSheet(html, onClose) {
+  $("#sheet-body").innerHTML = html;
+  S.sheetOnClose = onClose || null;
+  const o = $("#overlay"), s = $("#sheet");
+  o.classList.remove("hidden"); s.classList.remove("hidden");
+  s.scrollTop = 0;
+  requestAnimationFrame(() => { o.classList.add("open"); s.classList.add("open"); });
+  tg?.BackButton?.show();
+}
+function closeSheet() {
+  const o = $("#overlay"), s = $("#sheet");
+  if (s.classList.contains("hidden")) return;
+  o.classList.remove("open"); s.classList.remove("open");
+  setTimeout(() => { o.classList.add("hidden"); s.classList.add("hidden"); }, 250);
+  tg?.BackButton?.hide();
+  if (S.dirty) { S.dirty = false; refresh(); }
+  S.sheetOnClose?.();
+}
+// swipe down to close
+(() => {
+  const s = $("#sheet"); let y0 = null, dy = 0;
+  s.addEventListener("touchstart", e => { if (s.scrollTop <= 0) { y0 = e.touches[0].clientY; dy = 0; } }, { passive: true });
+  s.addEventListener("touchmove", e => { if (y0 == null) return; dy = e.touches[0].clientY - y0;
+    if (dy > 0) { s.style.transition = "none"; s.style.transform = `translateY(${dy}px)`; } }, { passive: true });
+  s.addEventListener("touchend", () => { if (y0 == null) return; s.style.transition = ""; s.style.transform = "";
+    if (dy > 110) closeSheet(); y0 = null; });
+})();
+
+/* ---------- other tabs ---------- */
+async function renderHomework() {
+  if (!S.online) { $("#main").innerHTML = offlineNotice("Домашні завдання"); return; }
+  $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+  const r = await api("/api/homework_list");
+  if (!r.items.length) { $("#main").innerHTML = `<div class="empty-state"><div class="big">📭</div>Актуальних ДЗ немає.<br>Відкрий пару в розкладі, щоб додати.</div>`; return; }
+  const groups = {};
+  r.items.forEach(i => (groups[i.date] ||= []).push(i));
+  $("#main").innerHTML = Object.entries(groups).map(([d, items]) => `
+    <div class="section-title">${dayName(d)}, ${fmt(d)}${d === S.me.today ? " · сьогодні" : d < S.me.today ? " · минуло" : ""}</div>
+    <div class="card">${items.map(i => `<button class="hw-item" style="width:100%;text-align:left" data-key="${esc(i.key)}">
+      <div><b>${esc(i.short)}</b> <span class="hint">· ${i.pair} пара</span></div>
+      <div class="txt">${esc(i.text)}</div><div class="by"><span>${esc(i.author || "")}</span></div></button>`).join("")}</div>`).join("");
+}
+
+async function renderGrades() {
+  if (!S.online) { $("#main").innerHTML = offlineNotice("Оцінки"); return; }
+  $("#main").innerHTML = '<div class="skeleton"></div>';
+  const r = await api(q("/api/grades", asParam()));
+  if (!r.courses.length) { $("#main").innerHTML = `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.<br>Відкрий пару в розкладі → «Зберегти оцінку».</div>`; return; }
+  $("#main").innerHTML = r.courses.map(c => `
+    <div class="section-title">${esc(c.name)}</div>
+    <div class="card">
+      ${c.avg != null ? `<div class="row"><div class="grow hint">Середній бал</div><div class="avg">${c.avg}</div></div>` : ""}
+      ${c.items.map(g => `<button class="row" data-key="${esc(g.key)}"><div class="val">${esc(g.value)}</div>
+        <div class="grow"><div>${fmt(g.date)}</div><div class="hint">${esc(g.comment || "")}</div></div><span class="hint">›</span></button>`).join("")}
+    </div>`).join("");
+}
+
+function renderLinksOffline() {
+  const P = S.pub, el = S.me.electives || {};
+  const rows = P.mandatory.concat(P.elective_rows);
+  const course = code => { const c = P.courses[code];
+    const teachers = [...new Set(rows.filter(r => r[2] === code).flatMap(r => r[6].split(",").map(t => t.trim())))];
+    return `<div class="card"><div class="row"><div class="grow"><b>${esc(c.name)}</b>${el[code] && (P.electives[code] || []).length > 1 ? ` <span class="pill">підгр. ${esc(el[code])}</span>` : ""}
+      <div class="hint">${c.mandatory ? "Обов'язкова" : esc(code)} · ${teachers.map(esc).join(", ")}</div></div></div></div>`; };
+  const mand = Object.keys(P.courses).filter(k => P.courses[k].mandatory);
+  $("#main").innerHTML = `
+    <div class="banner">📡 Zoom-посилання й чати зараз недоступні — вони в кнопці бота «🔗 Посилання».</div>
+    <div class="section-title">Обов'язкові</div>${mand.map(course).join("")}
+    <div class="section-title">Мої вибіркові · 4 курс</div>${Object.keys(el).map(course).join("") || '<div class="card"><div class="row hint">Не обрано</div></div>'}
+    <div class="form"><button class="primary btn-ghost" id="el-edit">🎓 Змінити вибіркові</button></div>
+    <div class="section-title">🔔 Дзвінки</div>
+    <div class="card">${Object.entries(P.bells).filter(([p]) => +p <= 6).map(([p, [a, b]]) => `<div class="row"><div class="grow">${p} пара</div><b>${a} – ${b}</b></div>`).join("")}</div>
+    <div class="section-title">👥 Класні години · 14:00</div>
+    <div class="card"><div class="row">${P.class_hours.map(d => `<span class="pill">${fmt(d)}</span>`).join(" ")}</div></div>`;
+  $("#el-edit").addEventListener("click", () => renderElectivePicker(false));
+}
+
+async function renderLinks() {
+  if (!S.online) return renderLinksOffline();
+  $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+  const r = await api(q("/api/links", asParam()));
+  const course = c => `<div class="card">
+    <div class="row"><div class="grow"><b>${esc(c.name)}</b>${c.subgroup ? ` <span class="pill">підгр. ${esc(c.subgroup)}</span>` : ""}
+      <div class="hint">${c.mandatory ? "Обов'язкова" : esc(c.course)}</div></div>
+      ${c.chat ? `<button class="btn-link btn-ghost" data-open="${esc(c.chat)}">💬 Чат</button>` : ""}</div>
+    ${c.teachers.map(t => `<div class="row"><div class="grow">${esc(t.name)}${t.extra ? `<div class="hint">${esc(t.extra)}</div>` : ""}</div>
+      ${t.url ? `<button class="btn-link" data-open="${esc(t.url)}">▶ ${t.url.includes("zoom") ? "Zoom" : "Meet"}</button>` : ""}</div>`).join("")}
+  </div>`;
+  const mand = r.courses.filter(c => c.mandatory), el = r.courses.filter(c => !c.mandatory);
+  $("#main").innerHTML = `
+    <div class="section-title">Обов'язкові</div>${mand.map(course).join("")}
+    <div class="section-title">Мої вибіркові · 4 курс</div>${el.map(course).join("") || '<div class="card"><div class="row hint">Немає</div></div>'}
+    <div class="section-title">🔔 Дзвінки</div>
+    <div class="card">${r.bells.map(b => `<div class="row"><div class="grow">${b.pair} пара</div><b>${b.start} – ${b.end}</b></div>`).join("")}</div>
+    <div class="section-title">👥 Класні години · 14:00</div>
+    <div class="card"><div class="row">${r.class_hours.map(d => `<span class="pill">${fmt(d)}</span>`).join(" ")}</div></div>`;
+}
+
+async function renderAdmin() {
+  if (!S.online) { $("#main").innerHTML = offlineNotice("Адмін-дані"); return; }
+  $("#main").innerHTML = '<div class="skeleton"></div>';
+  const r = await api("/api/admin/students");
+  const reg = r.students.filter(s => s.registered).length;
+  $("#main").innerHTML = `
+    <div class="section-title">Студенти · зареєстровано ${reg}/${r.students.length}</div>
+    <input class="search" id="adm-search" placeholder="🔍 Пошук">
+    <div class="card" id="adm-list">${r.students.map(s => `<button class="row" data-student="${esc(s.name)}">
+      <div>${s.registered ? "✅" : "▫️"}</div>
+      <div class="grow"><div>${esc(s.name)}</div><div class="hint">${Object.keys(s.electives).map(esc).join(", ") || "—"}${s.tg_name ? " · " + esc(s.tg_name) : ""}</div></div>
+      <span class="pill">⭐ ${s.grades}</span></button>`).join("")}</div>`;
+  $("#adm-search").addEventListener("input", e => {
+    const t = e.target.value.toLowerCase();
+    $("#adm-list").querySelectorAll("[data-student]").forEach(b => b.classList.toggle("hidden", !b.dataset.student.toLowerCase().includes(t)));
+  });
+  $("#adm-list").querySelectorAll("[data-student]").forEach(b => b.addEventListener("click", () => {
+    const s = r.students.find(x => x.name === b.dataset.student);
+    openSheet(`<h2>${esc(s.name)}</h2>
+      <div class="meta">${s.registered ? "Telegram: " + esc(s.tg_name || "") : "Не зареєстрований"}</div>
+      <div class="section-title">Вибіркові</div>
+      <div class="card">${Object.entries(s.electives).map(([c, g]) => `<div class="row"><div class="grow">${esc(c)}</div><span class="pill">${esc(g)}</span></div>`).join("") || '<div class="row hint">—</div>'}</div>
+      <div class="form">
+        <button class="primary" id="adm-view">👁 Дивитися як цей студент</button>
+        ${s.registered ? `<button class="primary" style="background:var(--danger)" id="adm-unbind">🔓 Відв'язати Telegram</button>` : ""}
+      </div>`);
+    $("#adm-view").addEventListener("click", () => { S.viewAs = s.name === S.me.student ? null : s.name; S.selected = null; closeSheet(); renderHeader(); switchTab("schedule"); });
+    $("#adm-unbind")?.addEventListener("click", () => confirmDo(`Відв'язати ${s.name}?`, async () => {
+      await api("/api/admin/unbind", { student: s.name }); toast("Відв'язано"); closeSheet(); renderAdmin(); }));
+  }));
+}
+
+/* ---------- registration ---------- */
+function renderRegister() {
+  $("#weekbar").classList.add("hidden"); $("#tabs").classList.add("hidden");
+  $("#who-name").textContent = "Хто ти?"; $("#who-sub").textContent = `Група ІПЗ-${S.me.group}`;
+  $("#main").innerHTML = `<div class="section-title">Обери себе у списку</div>
+    <input class="search" id="reg-search" placeholder="🔍 Прізвище">
+    <div class="card" id="reg-list">${S.me.students.map(s => `<button class="row" data-name="${esc(s.name)}" ${s.taken ? "disabled" : ""}>
+      <div class="grow" ${s.taken ? 'style="opacity:.45"' : ""}>${esc(s.name)}</div>${s.taken ? "🔒" : "›"}</button>`).join("")}</div>`;
+  $("#reg-search").addEventListener("input", e => {
+    const t = e.target.value.toLowerCase();
+    $("#reg-list").querySelectorAll("[data-name]").forEach(b => b.classList.toggle("hidden", !b.dataset.name.toLowerCase().includes(t)));
+  });
+  $("#reg-list").querySelectorAll("[data-name]:not([disabled])").forEach(b => b.addEventListener("click", () =>
+    confirmDo(`Ти — ${b.dataset.name}?`, async () => {
+      S.me = await api("/api/register", { student: b.dataset.name });
+      $("#weekbar").classList.remove("hidden"); $("#tabs").classList.remove("hidden");
+      renderHeader(); switchTab("schedule"); toast("Готово! Вибіркові підтягнуто автоматично 🎓");
+    })));
+}
+
+/* ---------- navigation ---------- */
+function switchTab(tab) {
+  S.tab = tab;
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === tab));
+  $("#weekbar").classList.toggle("hidden", tab !== "schedule");
+  window.scrollTo(0, 0);
+  refresh();
+}
+async function refresh() {
+  try {
+    if (S.tab === "schedule") await loadWeek(S.selected, true);
+    else if (S.tab === "homework") await renderHomework();
+    else if (S.tab === "grades") await renderGrades();
+    else if (S.tab === "links") await renderLinks();
+    else if (S.tab === "admin") await renderAdmin();
+  } catch (e) {
+    if (e.network && S.online && S.pub && !S.viewAs) { goOffline(e.message); return refresh(); }
+    $("#main").innerHTML = `<div class="empty-state"><div class="big">⚠️</div>${esc(e.message)}</div>`;
+  }
+}
+function goOffline(msg) {
+  if (!S.online) return;
+  S.online = false; S.netError = msg || "";
+  S.me = offlineMe(S.me?.electives || null);
+  $("#tab-admin").classList.add("hidden");
+  renderHeader();
+}
+
+document.addEventListener("click", e => {
+  const open = e.target.closest("[data-open]");
+  if (open) { e.stopPropagation(); haptic(); openLink(open.dataset.open); return; }
+  const key = e.target.closest("[data-key]");
+  if (key) { openLesson(key.dataset.key); return; }
+  const day = e.target.closest(".day[data-date]");
+  if (day && !day.disabled) { haptic("soft"); S.selected = day.dataset.date; renderWeekbar(); renderDay(); return; }
+  const tab = e.target.closest(".tab");
+  if (tab) { haptic("soft"); switchTab(tab.dataset.tab); }
+}, true);
+$("#overlay").addEventListener("click", closeSheet);
+$("#wk-prev").addEventListener("click", () => { haptic(); loadWeek(addDays(S.monday, -7)); });
+$("#wk-next").addEventListener("click", () => { haptic(); loadWeek(addDays(S.monday, 7)); });
+$("#viewas-exit").addEventListener("click", () => { S.viewAs = null; S.selected = null; renderHeader(); refresh(); });
+$("#btn-full").addEventListener("click", () => {
+  if (tg?.isVersionAtLeast?.("8.0")) { tg.isFullscreen ? tg.exitFullscreen() : tg.requestFullscreen(); }
+  else tg?.expand?.();
+});
+tg?.BackButton?.onClick(closeSheet);
+
+// swipe left/right on schedule to change day
+(() => {
+  let x0 = null, y0 = null;
+  $("#main").addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  $("#main").addEventListener("touchend", e => {
+    if (x0 == null || S.tab !== "schedule" || !S.week) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return;
+    const busy = S.week.days.filter(d => d.lessons.length || d.class_hour).map(d => d.date);
+    const i = busy.indexOf(S.selected) + (dx < 0 ? 1 : -1);
+    if (i >= 0 && i < busy.length) { haptic("soft"); S.selected = busy[i]; renderWeekbar(); renderDay(); }
+    else loadWeek(addDays(S.monday, dx < 0 ? 7 : -7));
+  }, { passive: true });
+})();
+
+/* ---------- boot ---------- */
+(async function boot() {
+  if (tg) {
+    document.documentElement.classList.add("tg");
+    tg.ready();
+    tg.setHeaderColor?.("secondary_bg_color");
+    tg.setBackgroundColor?.("secondary_bg_color");
+  }
+  await start();
+})();
+
+async function start() {
+  S.online = false; S.netError = ""; S.selected = null;
+  $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+  try { S.pub = await fetch("schedule.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null); } catch { S.pub = null; }
+  let err = null;
+  if (API !== null) {
+    try { S.me = await api("/api/me"); S.online = true; }
+    catch (e) { err = e; }
+  }
+  if (S.online) {
+    $("#weekbar").classList.remove("hidden"); $("#tabs").classList.remove("hidden");
+    if (!S.me.student) return renderRegister();
+    cloudSet("electives", JSON.stringify(S.me.electives || {}));   // remembered for offline mode
+    renderHeader(); switchTab("schedule"); return;
+  }
+  if (!S.pub || (err && !err.network)) {      // e.g. opened outside Telegram, or no schedule file
+    $("#who-name").textContent = "Помилка"; $("#weekbar").classList.add("hidden");
+    $("#main").innerHTML = `<div class="empty-state"><div class="big">🔒</div>${esc(err ? err.message : "Не вдалося завантажити розклад")}</div>`;
+    return;
+  }
+  let el = null;
+  try { el = JSON.parse(await cloudGet("electives") || "null"); } catch {}
+  S.me = offlineMe(el && Object.keys(el).length ? el : null);
+  S.netError = err ? err.message : "";
+  $("#tab-admin").classList.add("hidden");
+  setNetbar();
+  if (!S.me.electives) return renderElectivePicker(true);
+  $("#weekbar").classList.remove("hidden"); $("#tabs").classList.remove("hidden");
+  renderHeader(); switchTab("schedule");
+}
+$("#netbar-retry").addEventListener("click", () => { haptic(); start(); });
+</script>
+</body>
+</html>
