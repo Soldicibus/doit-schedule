@@ -151,16 +151,18 @@ textarea { resize: vertical; min-height: 70px; }
 .gseg { margin: 12px 0 4px; }
 .gwrap { overflow-x: auto; background: var(--card); border-radius: var(--radius); margin: 8px 0; -webkit-overflow-scrolling: touch; }
 .gtable { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; }
-.gtable th, .gtable td { padding: 9px 7px; text-align: center; border-bottom: 1px solid var(--sep); white-space: nowrap; }
-.gtable thead th { font-size: 11px; font-weight: 600; color: var(--hint); white-space: normal; min-width: 52px; max-width: 84px;
+.gtable th, .gtable td { padding: 9px 5px; text-align: center; border-bottom: 1px solid var(--sep); white-space: nowrap; }
+.gtable thead th { font-size: 11px; font-weight: 600; color: var(--hint); white-space: normal; min-width: 34px; max-width: 84px;
   line-height: 1.2; vertical-align: bottom; }
 .gtable tbody th, .gtable tfoot th, .gtable thead th:first-child { position: sticky; left: 0; background: var(--card); z-index: 1;
-  text-align: left; font-weight: 500; color: var(--text); min-width: 58px; }
+  text-align: left; font-weight: 500; color: var(--text); min-width: 44px; padding-left: 10px; }
 .gtable tbody td { font-weight: 700; font-size: 15px; }
 .gtable tbody td[data-key] { cursor: pointer; color: var(--accent); }
 .gtable tfoot th, .gtable tfoot td { border-bottom: 0; color: var(--accent); font-weight: 700; }
 .gtable tfoot th { color: var(--hint); font-weight: 600; }
 .gtable tr:last-child td, .gtable tr:last-child th { border-bottom: 0; }
+.glegend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--hint); margin: 6px 4px 0; }
+.glegend b { color: var(--text); display: inline-block; min-width: 40px; }
 .gtable .gavg { border-left: 1px solid var(--sep); color: var(--hint); font-weight: 600; }
 .gtable thead .gavg { color: var(--hint); }
 .gtable tfoot .gtotal { color: var(--accent-text); background: var(--accent); font-size: 16px; }
@@ -613,8 +615,15 @@ function snapGradeCourses() {
   });
 }
 
-/* Grades: table (subjects x dates) or list; the choice is remembered on this device. */
-function gradesView() { try { return localStorage.getItem("gview") || "table"; } catch { return "table"; } }
+/* Grades: table (subjects x dates) by default; "Список" lasts until the tab is left. */
+const gradesView = () => S.gview || "table";
+const ABBR_SKIP = new Set(["та", "і", "й", "в", "у", "з", "із", "для", "на", "до"]);
+function courseAbbr(code, name) {
+  const a = S.pub?.courses?.[code]?.abbr;
+  if (a) return a;
+  return name.split(/[\s\-–]+/).filter(w => w && !ABBR_SKIP.has(w.toLowerCase()))
+    .map(w => (w.length > 1 && w === w.toUpperCase()) ? w : w[0].toUpperCase()).join("").slice(0, 5);
+}
 function drawGrades(courses, note, clickable) {
   if (!courses.length) {
     $("#main").innerHTML = note + `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.${clickable ? "<br>Відкрий пару в розкладі → «Зберегти оцінку»." : ""}</div>`;
@@ -629,19 +638,20 @@ function drawGrades(courses, note, clickable) {
     `<button class="${view === v ? "on" : ""}" data-gview="${v}">${t}</button>`).join("")}</div>`;
   let body;
   if (view === "table") {
-    const shortName = c => S.pub?.courses?.[c.course]?.short || c.name;
+    const abbr = c => courseAbbr(c.course, c.name);
     const cells = {};
     for (const c of courses) for (const g of c.items) ((cells[g.date] ||= {})[c.course] ||= []).push(g);
     const dates = Object.keys(cells).sort();
     body = `<div class="gwrap"><table class="gtable">
-      <thead><tr><th></th>${courses.map(c => `<th title="${esc(c.name)}">${esc(shortName(c))}</th>`).join("")}<th class="gavg">Сер.</th></tr></thead>
-      <tbody>${dates.map(d => `<tr><th>${fmt(d)}</th>${courses.map(c => {
+      <thead><tr><th></th>${courses.map(c => `<th title="${esc(c.name)}">${esc(abbr(c))}</th>`).join("")}<th class="gavg">Сер.</th></tr></thead>
+      <tbody>${dates.map(d => `<tr><th>${d.slice(8, 10)}.${d.slice(5, 7)}</th>${courses.map(c => {
         const its = cells[d][c.course] || [];
         const tip = its.map(g => g.comment).filter(Boolean).join("; ");
-        return `<td${its.length && clickable ? ` data-key="${esc(its[0].key)}"` : ""}${tip ? ` title="${esc(tip)}"` : ""}>${its.map(g => esc(g.value)).join(", ")}</td>`;
+        return `<td${its.length && clickable ? ` data-key="${esc(its[0].key)}"` : ""}${tip ? ` title="${esc(tip)}"` : ""}>${its.map(g => esc(g.value)).join("<br>")}</td>`;
       }).join("")}<td class="gavg">${avgOf(courses.flatMap(c => (cells[d][c.course] || []).map(g => g.value))) ?? ""}</td></tr>`).join("")}</tbody>
       <tfoot><tr><th>Сер.</th>${courses.map(c => `<td>${c.avg ?? ""}</td>`).join("")}<td class="gavg gtotal">${overall ?? ""}</td></tr></tfoot>
-    </table></div>`;
+    </table></div>
+    <div class="glegend">${courses.map(c => `<span><b>${esc(abbr(c))}</b> — ${esc(c.name)}</span>`).join("")}</div>`;
   } else {
     body = courses.map(c => `
       <div class="section-title">${esc(c.name)}</div>
@@ -655,7 +665,7 @@ function drawGrades(courses, note, clickable) {
       <div class="hint">сума всіх оцінок / їх кількість</div></div><div class="avg" style="font-size:22px">${overall}</div></div></div>` : "";
   $("#main").innerHTML = note + seg + total + body;
   $("#main").querySelectorAll("[data-gview]").forEach(b => b.addEventListener("click", () => {
-    try { localStorage.setItem("gview", b.dataset.gview); } catch {}
+    S.gview = b.dataset.gview;
     haptic("soft"); drawGrades(courses, note, clickable);
   }));
 }
@@ -766,7 +776,7 @@ function renderRegister() {
 
 /* ---------- navigation ---------- */
 function switchTab(tab) {
-  S.tab = tab;
+  S.tab = tab; S.gview = null;   // grades always open as the table
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === tab));
   $("#weekbar").classList.toggle("hidden", tab !== "schedule");
   window.scrollTo(0, 0);
