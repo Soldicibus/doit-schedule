@@ -163,9 +163,6 @@ textarea { resize: vertical; min-height: 70px; }
 .gtable tr:last-child td, .gtable tr:last-child th { border-bottom: 0; }
 .glegend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--hint); margin: 6px 4px 0; }
 .glegend b { color: var(--text); display: inline-block; min-width: 40px; }
-.gtable .gavg { border-left: 1px solid var(--sep); color: var(--hint); font-weight: 600; }
-.gtable thead .gavg { color: var(--hint); }
-.gtable tfoot .gtotal { color: var(--accent-text); background: var(--accent); font-size: 16px; }
 .seg button { padding: 4px 10px; border-radius: 999px; background: var(--bg); font-size: 13px; }
 .seg button.on { background: var(--accent); color: var(--accent-text); }
 .viewas { background: color-mix(in srgb, var(--lb) 18%, var(--card)); border-radius: 12px; padding: 8px 12px; margin-top: 10px;
@@ -643,13 +640,13 @@ function drawGrades(courses, note, clickable) {
     for (const c of courses) for (const g of c.items) ((cells[g.date] ||= {})[c.course] ||= []).push(g);
     const dates = Object.keys(cells).sort();
     body = `<div class="gwrap"><table class="gtable">
-      <thead><tr><th></th>${courses.map(c => `<th title="${esc(c.name)}">${esc(abbr(c))}</th>`).join("")}<th class="gavg">Сер.</th></tr></thead>
+      <thead><tr><th></th>${courses.map(c => `<th title="${esc(c.name)}">${esc(abbr(c))}</th>`).join("")}</tr></thead>
       <tbody>${dates.map(d => `<tr><th>${d.slice(8, 10)}.${d.slice(5, 7)}</th>${courses.map(c => {
         const its = cells[d][c.course] || [];
         const tip = its.map(g => g.comment).filter(Boolean).join("; ");
         return `<td${its.length && clickable ? ` data-key="${esc(its[0].key)}"` : ""}${tip ? ` title="${esc(tip)}"` : ""}>${its.map(g => esc(g.value)).join("<br>")}</td>`;
-      }).join("")}<td class="gavg">${avgOf(courses.flatMap(c => (cells[d][c.course] || []).map(g => g.value))) ?? ""}</td></tr>`).join("")}</tbody>
-      <tfoot><tr><th>Сер.</th>${courses.map(c => `<td>${c.avg ?? ""}</td>`).join("")}<td class="gavg gtotal">${overall ?? ""}</td></tr></tfoot>
+      }).join("")}</tr>`).join("")}</tbody>
+      <tfoot><tr><th>Сер.</th>${courses.map(c => `<td>${c.avg ?? ""}</td>`).join("")}</tr></tfoot>
     </table></div>
     <div class="glegend">${courses.map(c => `<span><b>${esc(abbr(c))}</b> — ${esc(c.name)}</span>`).join("")}</div>`;
   } else {
