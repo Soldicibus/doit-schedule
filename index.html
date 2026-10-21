@@ -218,7 +218,7 @@ const API = (() => {
 })();
 
 const S = { me: null, tab: "schedule", monday: null, selected: null, week: null, viewAs: null, sheetOnClose: null,
-            online: false, pub: null, netError: "" };
+            online: false, pub: null, netError: "", snap: null };
 
 /* ---------- utils ---------- */
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -259,6 +259,34 @@ function cloudSet(key, value) {
   return new Promise(res => hasCloud() ? tg.CloudStorage.setItem(key, value, () => res()) : res());
 }
 
+/* The vault key is a secret: keep it in Telegram CloudStorage; browser storage only where that is missing. */
+function secretSet(key, value) {
+  if (hasCloud()) return new Promise(res => tg.CloudStorage.setItem(key, value, () => res()));
+  try { localStorage.setItem(key, value); } catch {}
+  return Promise.resolve();
+}
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+/* Encrypted copy of this student's homework + grades, published by the bot to GitHub (vault.py). */
+async function loadSnapshot() {
+  let v = null;
+  try { v = JSON.parse(await cloudGet("vault") || "null"); } catch {}
+  if (!v || !/^[0-9a-f]{32}$/.test(v.id || "") || !v.key || !crypto?.subtle) return null;
+  try {
+    const r = await fetch(`vault/${v.id}.json`, { cache: "no-cache" });
+    if (!r.ok) return null;
+    const f = await r.json();
+    const key = await crypto.subtle.importKey("raw", b64d(v.key), "AES-GCM", false, ["decrypt"]);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(f.n), additionalData: new TextEncoder().encode(v.id) },
+                                           key, b64d(f.c));
+    const snap = JSON.parse(new TextDecoder().decode(pt));
+    return snap && snap.v === 1 ? snap : null;
+  } catch { return null; }
+}
+const snapStamp = () => {
+  const g = S.snap?.generated || ""; if (!g) return "";
+  return `${fmt(g.slice(0, 10))} ${g.slice(11, 16)}`;
+};
+
 /* ---------- offline engine: same results as schedule.py, from the public schedule.json ---------- */
 const kyivToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" }).format(new Date());
 const utcDays = s => { const [y,m,d] = s.split("-").map(Number); return Date.UTC(y, m-1, d) / 864e5; };
@@ -274,7 +302,8 @@ function localLessons(date, el) {
     const many = (P.electives[course] || []).length > 1;
     out.push({ key: `${date}|${pair}|${course}`, date, pair, start: P.bells[pair][0], end: P.bells[pair][1],
       course, title: c.name, short: c.short, kind, teachers, mandatory: c.mandatory,
-      subgroup: many && sub !== "*" && sub !== "4.1" ? sub : null, links: [], chat: null, hw: 0 });
+      subgroup: many && sub !== "*" && sub !== "4.1" ? sub : null, links: [], chat: null,
+      hw: S.snap ? S.snap.homework.filter(h => h.key === `${date}|${pair}|${course}`).length : 0 });
   }
   return out.sort((a, b) => a.pair - b.pair || (a.course < b.course ? -1 : a.course > b.course ? 1 : 0));
 }
@@ -287,13 +316,18 @@ function localWeek(date) {
 }
 function offlineMe(electives) {
   const u = tg?.initDataUnsafe?.user, today = kyivToday();
+  if (S.snap) { const p = S.snap.student.split(" ");
+    return { offline: true, student: null, admin: false, group: S.pub.group, today, week: weekNo(today),
+             electives: S.snap.electives, name: `${p[1] || ""} ${p[0] || ""}`.trim() }; }
   return { offline: true, student: null, admin: false, group: S.pub.group, today, week: weekNo(today),
            electives: electives || null, name: u ? [u.first_name, u.last_name].filter(Boolean).join(" ") : "" };
 }
 function setNetbar() {
   const show = !S.online && !!S.me?.offline;
   $("#netbar").classList.toggle("hidden", !show);
-  if (show) $("#netbar-text").textContent = API === null
+  if (show) $("#netbar-text").textContent = S.snap
+    ? `📡 Сервер бота недоступний. Показую збережену копію ДЗ й оцінок (оновлена ${snapStamp()}), лише перегляд.`
+    : API === null
     ? "📡 Розклад працює без сервера. ДЗ, оцінки й Zoom — у кнопках бота."
     : "📡 Сервер бота недоступний з цієї мережі. Розклад працює; ДЗ, оцінки й Zoom — у кнопках бота.";
   $("#netbar-retry").classList.toggle("hidden", API === null);
@@ -431,7 +465,18 @@ function renderOfflineLesson(key) {
   openSheet(`<h2>${esc(l.title)}</h2>
     <div class="meta">${dayName(l.date)}, ${fmt(l.date)} · ${esc(l.start)}–${esc(l.end)} · ${KIND[l.kind] || esc(l.kind)}${l.subgroup ? " · підгр. " + esc(l.subgroup) : ""}</div>
     <div class="section-title">Викладач</div><div class="card"><div class="row">${esc(l.teachers)}</div></div>
-    ${offlineNotice("ДЗ, оцінки й Zoom")}`);
+    ${S.snap ? snapLessonHtml(key) : offlineNotice("ДЗ, оцінки й Zoom")}`);
+}
+
+function snapLessonHtml(key) {
+  const hws = S.snap.homework.filter(h => h.key === key), grs = S.snap.grades.filter(g => g.key === key);
+  return `<div class="section-title">📝 Домашнє завдання <span class="pill">копія від ${esc(snapStamp())}</span></div>
+    <div class="card">${hws.map(h => `<div class="hw-item"><div class="txt">${esc(h.text)}</div>
+      <div class="by"><span>${esc(h.author || "")}</span></div></div>`).join("") || '<div class="row hint">Немає</div>'}</div>
+    <div class="section-title">⭐ Мої оцінки</div>
+    <div class="card">${grs.map(g => `<div class="row"><div class="val">${esc(g.value)}</div><div class="grow hint">${esc(g.comment || "")}</div></div>`).join("")
+      || '<div class="row hint">Оцінок за цю пару немає</div>'}</div>
+    <div class="hint" style="text-align:center;margin-top:10px">Додати чи змінити можна, коли сервер бота знову доступний.</div>`;
 }
 
 function renderLessonSheet(r) {
@@ -513,7 +558,36 @@ function closeSheet() {
 })();
 
 /* ---------- other tabs ---------- */
+function renderHomeworkSnap() {
+  const from = addDays(S.me.today, -7), groups = {};
+  S.snap.homework.filter(h => h.key.slice(0, 10) >= from).sort((a, b) => a.key < b.key ? -1 : 1)
+    .forEach(h => (groups[h.key.slice(0, 10)] ||= []).push(h));
+  const note = `<div class="banner">📡 Збережена копія від ${esc(snapStamp())} — лише перегляд.</div>`;
+  if (!Object.keys(groups).length) { $("#main").innerHTML = note + `<div class="empty-state"><div class="big">📭</div>Актуальних ДЗ немає.</div>`; return; }
+  $("#main").innerHTML = note + Object.entries(groups).map(([d, items]) => `
+    <div class="section-title">${dayName(d)}, ${fmt(d)}${d === S.me.today ? " · сьогодні" : d < S.me.today ? " · минуло" : ""}</div>
+    <div class="card">${items.map(h => { const [, pair, course] = h.key.split("|");
+      return `<div class="hw-item"><div><b>${esc(S.pub.courses[course]?.short || course)}</b> <span class="hint">· ${esc(pair)} пара</span></div>
+      <div class="txt">${esc(h.text)}</div><div class="by"><span>${esc(h.author || "")}</span></div></div>`; }).join("")}</div>`).join("");
+}
+
+function renderGradesSnap() {
+  const by = {};
+  S.snap.grades.forEach(g => (by[g.course] ||= []).push(g));
+  const note = `<div class="banner">📡 Збережена копія від ${esc(snapStamp())} — лише перегляд.</div>`;
+  if (!Object.keys(by).length) { $("#main").innerHTML = note + `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.</div>`; return; }
+  $("#main").innerHTML = note + Object.entries(by).map(([course, items]) => {
+    const nums = items.map(g => parseFloat(String(g.value).replace(",", "."))).filter(n => !isNaN(n));
+    const avg = nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 10) / 10 : null;
+    return `<div class="section-title">${esc(S.pub.courses[course]?.name || course)}</div><div class="card">
+      ${avg != null ? `<div class="row"><div class="grow hint">Середній бал</div><div class="avg">${avg}</div></div>` : ""}
+      ${items.sort((a, b) => a.key < b.key ? -1 : 1).map(g => `<div class="row"><div class="val">${esc(g.value)}</div>
+        <div class="grow"><div>${fmt(g.key.slice(0, 10))}</div><div class="hint">${esc(g.comment || "")}</div></div></div>`).join("")}
+    </div>`; }).join("");
+}
+
 async function renderHomework() {
+  if (!S.online && S.snap) return renderHomeworkSnap();
   if (!S.online) { $("#main").innerHTML = offlineNotice("Домашні завдання"); return; }
   $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
   const r = await api("/api/homework_list");
@@ -528,6 +602,7 @@ async function renderHomework() {
 }
 
 async function renderGrades() {
+  if (!S.online && S.snap) return renderGradesSnap();
   if (!S.online) { $("#main").innerHTML = offlineNotice("Оцінки"); return; }
   $("#main").innerHTML = '<div class="skeleton"></div>';
   const r = await api(q("/api/grades", asParam()));
@@ -657,6 +732,7 @@ async function refresh() {
 function goOffline(msg) {
   if (!S.online) return;
   S.online = false; S.netError = msg || "";
+  loadSnapshot().then(snap => { if (snap) { S.snap = snap; S.me = offlineMe(null); renderHeader(); refresh(); } });
   S.me = offlineMe(S.me?.electives || null);
   $("#tab-admin").classList.add("hidden");
   renderHeader();
@@ -709,7 +785,7 @@ tg?.BackButton?.onClick(closeSheet);
 })();
 
 async function start() {
-  S.online = false; S.netError = ""; S.selected = null;
+  S.online = false; S.netError = ""; S.selected = null; S.snap = null;
   $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   try { S.pub = await fetch("schedule.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null); } catch { S.pub = null; }
   let err = null;
@@ -721,6 +797,7 @@ async function start() {
     $("#weekbar").classList.remove("hidden"); $("#tabs").classList.remove("hidden");
     if (!S.me.student) return renderRegister();
     cloudSet("electives", JSON.stringify(S.me.electives || {}));   // remembered for offline mode
+    if (S.me.vault) secretSet("vault", JSON.stringify(S.me.vault));   // key for the encrypted offline copy
     renderHeader(); switchTab("schedule"); return;
   }
   if (!S.pub || (err && !err.network)) {      // e.g. opened outside Telegram, or no schedule file
@@ -728,6 +805,7 @@ async function start() {
     $("#main").innerHTML = `<div class="empty-state"><div class="big">🔒</div>${esc(err ? err.message : "Не вдалося завантажити розклад")}</div>`;
     return;
   }
+  S.snap = await loadSnapshot();
   let el = null;
   try { el = JSON.parse(await cloudGet("electives") || "null"); } catch {}
   S.me = offlineMe(el && Object.keys(el).length ? el : null);
