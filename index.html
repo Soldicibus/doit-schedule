@@ -148,6 +148,22 @@ textarea { resize: vertical; min-height: 70px; }
 .pick .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--sep); flex: none; display: grid; place-items: center; font-size: 14px; }
 .pick.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .seg { display: flex; gap: 6px; margin-top: 6px; }
+.gseg { margin: 12px 0 4px; }
+.gwrap { overflow-x: auto; background: var(--card); border-radius: var(--radius); margin: 8px 0; -webkit-overflow-scrolling: touch; }
+.gtable { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; }
+.gtable th, .gtable td { padding: 9px 7px; text-align: center; border-bottom: 1px solid var(--sep); white-space: nowrap; }
+.gtable thead th { font-size: 11px; font-weight: 600; color: var(--hint); white-space: normal; min-width: 52px; max-width: 84px;
+  line-height: 1.2; vertical-align: bottom; }
+.gtable tbody th, .gtable tfoot th, .gtable thead th:first-child { position: sticky; left: 0; background: var(--card); z-index: 1;
+  text-align: left; font-weight: 500; color: var(--text); min-width: 58px; }
+.gtable tbody td { font-weight: 700; font-size: 15px; }
+.gtable tbody td[data-key] { cursor: pointer; color: var(--accent); }
+.gtable tfoot th, .gtable tfoot td { border-bottom: 0; color: var(--accent); font-weight: 700; }
+.gtable tfoot th { color: var(--hint); font-weight: 600; }
+.gtable tr:last-child td, .gtable tr:last-child th { border-bottom: 0; }
+.gtable .gavg { border-left: 1px solid var(--sep); color: var(--hint); font-weight: 600; }
+.gtable thead .gavg { color: var(--hint); }
+.gtable tfoot .gtotal { color: var(--accent-text); background: var(--accent); font-size: 16px; }
 .seg button { padding: 4px 10px; border-radius: 999px; background: var(--bg); font-size: 13px; }
 .seg button.on { background: var(--accent); color: var(--accent-text); }
 .viewas { background: color-mix(in srgb, var(--lb) 18%, var(--card)); border-radius: 12px; padding: 8px 12px; margin-top: 10px;
@@ -586,19 +602,62 @@ function renderHomeworkSnap() {
       <div class="txt">${esc(h.text)}</div><div class="by"><span>${esc(h.author || "")}</span></div></div>`; }).join("")}</div>`).join("");
 }
 
-function renderGradesSnap() {
+function snapGradeCourses() {
   const by = {};
-  S.snap.grades.forEach(g => (by[g.course] ||= []).push(g));
-  const note = `<div class="banner">📡 Збережена копія від ${esc(snapStamp())} — лише перегляд.</div>`;
-  if (!Object.keys(by).length) { $("#main").innerHTML = note + `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.</div>`; return; }
-  $("#main").innerHTML = note + Object.entries(by).map(([course, items]) => {
+  S.snap.grades.forEach(g => (by[g.course] ||= []).push({ date: g.key.slice(0, 10), key: g.key, value: g.value, comment: g.comment }));
+  return Object.entries(by).map(([course, items]) => {
     const nums = items.map(g => parseFloat(String(g.value).replace(",", "."))).filter(n => !isNaN(n));
-    const avg = nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 10) / 10 : null;
-    return `<div class="section-title">${esc(S.pub.courses[course]?.name || course)}</div><div class="card">
-      ${avg != null ? `<div class="row"><div class="grow hint">Середній бал</div><div class="avg">${avg}</div></div>` : ""}
-      ${items.sort((a, b) => a.key < b.key ? -1 : 1).map(g => `<div class="row"><div class="val">${esc(g.value)}</div>
-        <div class="grow"><div>${fmt(g.key.slice(0, 10))}</div><div class="hint">${esc(g.comment || "")}</div></div></div>`).join("")}
-    </div>`; }).join("");
+    return { course, name: S.pub.courses[course]?.name || course,
+             items: items.sort((a, b) => a.key < b.key ? -1 : 1),
+             avg: nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 10) / 10 : null };
+  });
+}
+
+/* Grades: table (subjects x dates) or list; the choice is remembered on this device. */
+function gradesView() { try { return localStorage.getItem("gview") || "table"; } catch { return "table"; } }
+function drawGrades(courses, note, clickable) {
+  if (!courses.length) {
+    $("#main").innerHTML = note + `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.${clickable ? "<br>Відкрий пару в розкладі → «Зберегти оцінку»." : ""}</div>`;
+    return;
+  }
+  const num = v => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
+  const avgOf = vals => { const n = vals.map(num).filter(x => x != null);
+    return n.length ? Math.round(n.reduce((a, b) => a + b, 0) / n.length * 10) / 10 : null; };
+  const overall = avgOf(courses.flatMap(c => c.items.map(g => g.value)));   // sum of all grades / count
+  const view = gradesView();
+  const seg = `<div class="seg gseg">${[["table", "Таблиця"], ["list", "Список"]].map(([v, t]) =>
+    `<button class="${view === v ? "on" : ""}" data-gview="${v}">${t}</button>`).join("")}</div>`;
+  let body;
+  if (view === "table") {
+    const shortName = c => S.pub?.courses?.[c.course]?.short || c.name;
+    const cells = {};
+    for (const c of courses) for (const g of c.items) ((cells[g.date] ||= {})[c.course] ||= []).push(g);
+    const dates = Object.keys(cells).sort();
+    body = `<div class="gwrap"><table class="gtable">
+      <thead><tr><th></th>${courses.map(c => `<th title="${esc(c.name)}">${esc(shortName(c))}</th>`).join("")}<th class="gavg">Сер.</th></tr></thead>
+      <tbody>${dates.map(d => `<tr><th>${fmt(d)}</th>${courses.map(c => {
+        const its = cells[d][c.course] || [];
+        const tip = its.map(g => g.comment).filter(Boolean).join("; ");
+        return `<td${its.length && clickable ? ` data-key="${esc(its[0].key)}"` : ""}${tip ? ` title="${esc(tip)}"` : ""}>${its.map(g => esc(g.value)).join(", ")}</td>`;
+      }).join("")}<td class="gavg">${avgOf(courses.flatMap(c => (cells[d][c.course] || []).map(g => g.value))) ?? ""}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><th>Сер.</th>${courses.map(c => `<td>${c.avg ?? ""}</td>`).join("")}<td class="gavg gtotal">${overall ?? ""}</td></tr></tfoot>
+    </table></div>`;
+  } else {
+    body = courses.map(c => `
+      <div class="section-title">${esc(c.name)}</div>
+      <div class="card">
+        ${c.avg != null ? `<div class="row"><div class="grow hint">Середній бал</div><div class="avg">${c.avg}</div></div>` : ""}
+        ${c.items.map(g => `<${clickable ? `button class="row" data-key="${esc(g.key)}"` : 'div class="row"'}><div class="val">${esc(g.value)}</div>
+          <div class="grow"><div>${fmt(g.date)}</div><div class="hint">${esc(g.comment || "")}</div></div>${clickable ? '<span class="hint">›</span></button>' : "</div>"}`).join("")}
+      </div>`).join("");
+  }
+  const total = overall != null ? `<div class="card"><div class="row"><div class="grow"><b>Загальний середній бал</b>
+      <div class="hint">сума всіх оцінок / їх кількість</div></div><div class="avg" style="font-size:22px">${overall}</div></div></div>` : "";
+  $("#main").innerHTML = note + seg + total + body;
+  $("#main").querySelectorAll("[data-gview]").forEach(b => b.addEventListener("click", () => {
+    try { localStorage.setItem("gview", b.dataset.gview); } catch {}
+    haptic("soft"); drawGrades(courses, note, clickable);
+  }));
 }
 
 async function renderHomework() {
@@ -617,38 +676,12 @@ async function renderHomework() {
 }
 
 async function renderGrades() {
-  if (!S.online && S.snap) return renderGradesSnap();
+  if (!S.online && S.snap) return drawGrades(snapGradeCourses(),
+    `<div class="banner">📡 Збережена копія від ${esc(snapStamp())} — лише перегляд.</div>`, false);
   if (!S.online) { $("#main").innerHTML = offlineNotice("Оцінки"); return; }
   $("#main").innerHTML = '<div class="skeleton"></div>';
   const r = await api(q("/api/grades", asParam()));
-  if (!r.courses.length) { $("#main").innerHTML = `<div class="empty-state"><div class="big">⭐</div>Оцінок ще немає.<br>Відкрий пару в розкладі → «Зберегти оцінку».</div>`; return; }
-  $("#main").innerHTML = r.courses.map(c => `
-    <div class="section-title">${esc(c.name)}</div>
-    <div class="card">
-      ${c.avg != null ? `<div class="row"><div class="grow hint">Середній бал</div><div class="avg">${c.avg}</div></div>` : ""}
-      ${c.items.map(g => `<button class="row" data-key="${esc(g.key)}"><div class="val">${esc(g.value)}</div>
-        <div class="grow"><div>${fmt(g.date)}</div><div class="hint">${esc(g.comment || "")}</div></div><span class="hint">›</span></button>`).join("")}
-    </div>`).join("");
-}
-
-function renderLinksOffline() {
-  const P = S.pub, el = S.me.electives || {};
-  const rows = P.mandatory.concat(P.elective_rows);
-  const course = code => { const c = P.courses[code];
-    const teachers = [...new Set(rows.filter(r => r[2] === code).flatMap(r => r[6].split(",").map(t => t.trim())))];
-    return `<div class="card"><div class="row"><div class="grow"><b>${esc(c.name)}</b>${el[code] && (P.electives[code] || []).length > 1 ? ` <span class="pill">підгр. ${esc(el[code])}</span>` : ""}
-      <div class="hint">${c.mandatory ? "Обов'язкова" : esc(code)} · ${teachers.map(esc).join(", ")}</div></div></div></div>`; };
-  const mand = Object.keys(P.courses).filter(k => P.courses[k].mandatory);
-  $("#main").innerHTML = `
-    <div class="banner">📡 Zoom-посилання й чати зараз недоступні — вони в кнопці бота «🔗 Посилання».</div>
-    <div class="section-title">Обов'язкові</div>${mand.map(course).join("")}
-    <div class="section-title">Мої вибіркові · 4 курс</div>${Object.keys(el).map(course).join("") || '<div class="card"><div class="row hint">Не обрано</div></div>'}
-    <div class="form"><button class="primary btn-ghost" id="el-edit">🎓 Змінити вибіркові</button></div>
-    <div class="section-title">🔔 Дзвінки</div>
-    <div class="card">${Object.entries(P.bells).filter(([p]) => +p <= 6).map(([p, [a, b]]) => `<div class="row"><div class="grow">${p} пара</div><b>${a} – ${b}</b></div>`).join("")}</div>
-    <div class="section-title">👥 Класні години · 14:00</div>
-    <div class="card"><div class="row">${P.class_hours.map(d => `<span class="pill">${fmt(d)}</span>`).join(" ")}</div></div>`;
-  $("#el-edit").addEventListener("click", () => renderElectivePicker(false));
+  drawGrades(r.courses, "", true);
 }
 
 async function renderLinks() {
