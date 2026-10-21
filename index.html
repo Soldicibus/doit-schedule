@@ -302,10 +302,18 @@ function localLessons(date, el) {
     const many = (P.electives[course] || []).length > 1;
     out.push({ key: `${date}|${pair}|${course}`, date, pair, start: P.bells[pair][0], end: P.bells[pair][1],
       course, title: c.name, short: c.short, kind, teachers, mandatory: c.mandatory,
-      subgroup: many && sub !== "*" && sub !== "4.1" ? sub : null, links: [], chat: null,
+      subgroup: many && sub !== "*" && sub !== "4.1" ? sub : null, links: snapLinks(teachers), chat: S.snap?.chats?.[course] || null,
       hw: S.snap ? S.snap.homework.filter(h => h.key === `${date}|${pair}|${course}`).length : 0 });
   }
   return out.sort((a, b) => a.pair - b.pair || (a.course < b.course ? -1 : a.course > b.course ? 1 : 0));
+}
+function snapLinks(teachers) {
+  const map = S.snap?.teacher_links || {}, seen = new Set(), out = [];
+  for (const t of teachers.split(",").map(x => x.trim())) {
+    const url = map[t];
+    if (url && !seen.has(url) && /^https:\/\//.test(url)) { seen.add(url); out.push({ teacher: t, url }); }
+  }
+  return out;
 }
 function localWeek(date) {
   const monday = mondayOf(date), el = S.me.electives || {}, wk = weekNo(monday);
@@ -326,7 +334,7 @@ function setNetbar() {
   const show = !S.online && !!S.me?.offline;
   $("#netbar").classList.toggle("hidden", !show);
   if (show) $("#netbar-text").textContent = S.snap
-    ? `📡 Сервер бота недоступний. Показую збережену копію ДЗ й оцінок (оновлена ${snapStamp()}), лише перегляд.`
+    ? `📡 Сервер бота недоступний. Показую збережену копію ДЗ, оцінок і посилань (оновлена ${snapStamp()}), лише перегляд.`
     : API === null
     ? "📡 Розклад працює без сервера. ДЗ, оцінки й Zoom — у кнопках бота."
     : "📡 Сервер бота недоступний з цієї мережі. Розклад працює; ДЗ, оцінки й Zoom — у кнопках бота.";
@@ -464,8 +472,15 @@ function renderOfflineLesson(key) {
   if (!l) return;
   openSheet(`<h2>${esc(l.title)}</h2>
     <div class="meta">${dayName(l.date)}, ${fmt(l.date)} · ${esc(l.start)}–${esc(l.end)} · ${KIND[l.kind] || esc(l.kind)}${l.subgroup ? " · підгр. " + esc(l.subgroup) : ""}</div>
-    <div class="section-title">Викладач</div><div class="card"><div class="row">${esc(l.teachers)}</div></div>
+    ${S.snap ? connectHtml(l) : `<div class="section-title">Викладач</div><div class="card"><div class="row">${esc(l.teachers)}</div></div>`}
     ${S.snap ? snapLessonHtml(key) : offlineNotice("ДЗ, оцінки й Zoom")}`);
+}
+
+function connectHtml(l) {
+  const links = l.links.map(x => `<div class="row"><div class="grow">${esc(x.teacher)}</div>
+      <button class="btn-link" data-open="${esc(x.url)}">▶ ${x.url.includes("zoom") ? "Zoom" : "Meet"}</button></div>`).join("");
+  const chat = l.chat ? `<div class="row"><div class="grow">Чат предмета</div><button class="btn-link btn-ghost" data-open="${esc(l.chat)}">💬 Відкрити</button></div>` : "";
+  return links || chat ? `<div class="section-title">Підключення</div><div class="card">${links}${chat}</div>` : "";
 }
 
 function snapLessonHtml(key) {
@@ -637,9 +652,16 @@ function renderLinksOffline() {
 }
 
 async function renderLinks() {
+  if (!S.online && S.snap?.links) return drawLinks({ courses: S.snap.links,
+      bells: Object.entries(S.pub.bells).filter(([p]) => +p <= 6).map(([pair, [start, end]]) => ({ pair, start, end })),
+      class_hours: S.pub.class_hours },
+    `<div class="banner">📡 Збережена копія від ${esc(snapStamp())}.</div>`);
   if (!S.online) return renderLinksOffline();
   $("#main").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
-  const r = await api(q("/api/links", asParam()));
+  drawLinks(await api(q("/api/links", asParam())), "");
+}
+
+function drawLinks(r, note) {
   const course = c => `<div class="card">
     <div class="row"><div class="grow"><b>${esc(c.name)}</b>${c.subgroup ? ` <span class="pill">підгр. ${esc(c.subgroup)}</span>` : ""}
       <div class="hint">${c.mandatory ? "Обов'язкова" : esc(c.course)}</div></div>
@@ -648,7 +670,7 @@ async function renderLinks() {
       ${t.url ? `<button class="btn-link" data-open="${esc(t.url)}">▶ ${t.url.includes("zoom") ? "Zoom" : "Meet"}</button>` : ""}</div>`).join("")}
   </div>`;
   const mand = r.courses.filter(c => c.mandatory), el = r.courses.filter(c => !c.mandatory);
-  $("#main").innerHTML = `
+  $("#main").innerHTML = note + `
     <div class="section-title">Обов'язкові</div>${mand.map(course).join("")}
     <div class="section-title">Мої вибіркові · 4 курс</div>${el.map(course).join("") || '<div class="card"><div class="row hint">Немає</div></div>'}
     <div class="section-title">🔔 Дзвінки</div>
